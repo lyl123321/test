@@ -1,0 +1,113 @@
+<template>
+  <div class="hello">
+    <h1>{{ message }}</h1>
+    <p>
+      For a guide and recipes on how to configure / customize this project,<br>
+      check out the
+      <a href="https://cli.vuejs.org" target="_blank" rel="noopener">vue-cli documentation</a>.
+    </p>
+    <h3>Installed CLI Plugins</h3>
+    <ul>
+      <li><a href="https://github.com/vuejs/vue-cli/tree/dev/packages/%40vue/cli-plugin-babel" target="_blank" rel="noopener">babel</a></li>
+    </ul>
+    <h3>Essential Links</h3>
+    <ul>
+      <li><a href="https://vuejs.org" target="_blank" rel="noopener">Core Docs</a></li>
+      <li><a href="https://forum.vuejs.org" target="_blank" rel="noopener">Forum</a></li>
+      <li><a href="https://chat.vuejs.org" target="_blank" rel="noopener">Community Chat</a></li>
+      <li><a href="https://twitter.com/vuejs" target="_blank" rel="noopener">Twitter</a></li>
+      <li><a href="https://news.vuejs.org" target="_blank" rel="noopener">News</a></li>
+    </ul>
+    <h3>Ecosystem</h3>
+    <ul>
+      <li><a href="https://router.vuejs.org" target="_blank" rel="noopener">vue-router</a></li>
+      <li><a href="https://vuex.vuejs.org" target="_blank" rel="noopener">vuex</a></li>
+      <li><a href="https://github.com/vuejs/vue-devtools#vue-devtools" target="_blank" rel="noopener">vue-devtools</a></li>
+      <li><a href="https://vue-loader.vuejs.org" target="_blank" rel="noopener">vue-loader</a></li>
+      <li><a href="https://github.com/vuejs/awesome-vue" target="_blank" rel="noopener">awesome-vue</a></li>
+    </ul>
+  </div>
+</template>
+
+<script>
+export default {
+  name: 'HelloWorld',
+  props: {
+    msg: String
+  },
+	data(){
+		return {
+			message: this.msg
+		}
+	},
+  beforeCreate() {
+    console.log('HelloWorld 组件实例调用了beforeCreate')
+    console.log(this.message)
+    console.log(this.$el)
+  },
+  created() {
+    console.log('HelloWorld 组件实例调用了created')
+    console.log(this.message)
+    console.log(this.$el)
+  },
+  beforeMount() {
+    console.log('HelloWorld 组件实例调用了beforeMount')
+    console.log(this.message)
+    console.log(this.$el)
+  },
+  mounted() {
+    console.log('HelloWorld 组件实例调用了mounted')
+    console.log(this.message)
+    console.log(this.$el)
+		//this.message = 'HelloWorld.message';
+  },
+  activated() {
+    console.log('HelloWorld 组件实例调用了activated')
+    console.log(this.message)
+    console.log(this.$el)
+  },
+  deactivated() {
+    console.log('HelloWorld 组件实例调用了deactivated')
+    console.log(this.message)
+    console.log(this.$el)
+  },
+  beforeUpdate() {
+    console.log('HelloWorld 组件实例调用了beforeUpdate')
+    console.log(this.message)
+    console.log(this.$el)
+  },
+  updated() {
+    console.log('HelloWorld 组件实例调用了updated')
+    console.log(this.message)
+    console.log(this.$el)
+  },
+  beforeDestory() {
+    console.log('HelloWorld 组件实例调用了beforeDestory')
+    console.log(this.message)
+    console.log(this.$el)
+  },
+  destoryed() {
+    console.log('HelloWorld 组件实例调用了destoryed')
+    console.log(this.message)
+    console.log(this.$el)
+  },
+}
+</script>
+
+<!-- Add "scoped" attribute to limit CSS to this component only -->
+<style scoped>
+h3 {
+  margin: 40px 0 0;
+}
+ul {
+  list-style-type: none;
+  padding: 0;
+}
+li {
+  display: inline-block;
+  margin: 0 10px;
+}
+a {
+  color: #42b983;
+}
+</style>
