@@ -39,3 +39,4 @@ new Vue({
     console.log(this.$el)
   }
 });
+console.log('first event loop end')

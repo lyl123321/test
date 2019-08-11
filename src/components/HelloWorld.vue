@@ -30,6 +30,7 @@
 </template>
 
 <script>
+
 export default {
   name: 'HelloWorld',
   props: {
@@ -42,54 +43,35 @@ export default {
 	},
   beforeCreate() {
     console.log('HelloWorld 组件实例调用了beforeCreate')
-    console.log(this.message)
-    console.log(this.$el)
+		debugger;
   },
   created() {
     console.log('HelloWorld 组件实例调用了created')
-    console.log(this.message)
-    console.log(this.$el)
   },
   beforeMount() {
     console.log('HelloWorld 组件实例调用了beforeMount')
-    console.log(this.message)
-    console.log(this.$el)
   },
   mounted() {
     console.log('HelloWorld 组件实例调用了mounted')
-    console.log(this.message)
-    console.log(this.$el)
 		//this.message = 'HelloWorld.message';
   },
   activated() {
     console.log('HelloWorld 组件实例调用了activated')
-    console.log(this.message)
-    console.log(this.$el)
   },
   deactivated() {
     console.log('HelloWorld 组件实例调用了deactivated')
-    console.log(this.message)
-    console.log(this.$el)
   },
   beforeUpdate() {
     console.log('HelloWorld 组件实例调用了beforeUpdate')
-    console.log(this.message)
-    console.log(this.$el)
   },
   updated() {
     console.log('HelloWorld 组件实例调用了updated')
-    console.log(this.message)
-    console.log(this.$el)
   },
   beforeDestory() {
     console.log('HelloWorld 组件实例调用了beforeDestory')
-    console.log(this.message)
-    console.log(this.$el)
   },
   destoryed() {
     console.log('HelloWorld 组件实例调用了destoryed')
-    console.log(this.message)
-    console.log(this.$el)
   },
 }
 </script>
