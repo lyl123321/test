@@ -139,7 +139,7 @@ export function createPatchFunction(backend) {
   }
 }
 ```
-`createElm`方法开始生成真实的`Dom`，即`vnode.elm`，并返回真实`Dom`覆盖`vm.$el`。
+`createElm`方法开始生成真实的`Dom`，即`vnode.elm`，挂载到`HTML`中，并返回真实`Dom`覆盖`vm.$el`。
 等以上操作全部完成，就会执行`mounted`钩子函数，此时在函数中可以通过`this`访问到`vm.$el`属性，此时它为虚拟`vnode`转化而来的真实`Dom`。
 参考链接：[彻底搞懂虚拟Dom到真实Dom的生成过程](https://juejin.im/post/5d42e5036fb9a06b0d7c66b0)
 #### beforeUpdate
@@ -187,7 +187,7 @@ updateComponent = function () {
   vm._update(vm._render(), hydrating);
 };
 ```
-`vm._render`方法将重新执行`render`方法生成`vnode`，然后`vm._update`会将`vnode`转化为真实`Dom`，覆盖`vm.$el`。
+`vm._render`方法将重新执行`render`方法生成`vnode`，然后`vm._update`方法会将`vnode`转化为真实`Dom`，挂载到`HTML`中，并覆盖`vm.$el`。
 等以上操作全部完成，就会执行`updated`钩子函数，此时在函数中通过`this.$el`访问到`vm.$el`属性的值为更新后的真实`Dom`。
 #### beforeDestroy
 #### destroyed
