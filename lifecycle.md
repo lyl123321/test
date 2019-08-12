@@ -74,7 +74,7 @@ Vue.prototype.$mount = function(el) {  // 拓展编译后的
 		}
   }
   ...
-  return mount.call(this, query(el))
+  return mount.call(this, query(el))	//即 Vue.prototype.$mount.call(this, query(el))
 }
 ```
 在`vm.$mount`方法中，如果用户未提供`render`函数，就会将`template`或者`el.outerHTML`编译成`render`函数。
@@ -206,7 +206,7 @@ export function mountComponent(vm, el) {
 	const updateComponent = function () {
 	  vm._update(vm._render(), hydrating);
 	};
-  new Watcher(vm, updateComponent, noop, {	//在 Watcher 构造函数中绑定 updateComponent 后会立即调用，开始更新组件
+  new Watcher(vm, updateComponent, noop, {
     before: function before () {
      if (vm._isMounted && !vm._isDestroyed) {
         callHook(vm, 'beforeUpdate');
@@ -231,13 +231,15 @@ var Watcher = function Watcher (vm, expOrFn, cb, options, isRenderWatcher) {
 	if (typeof expOrFn === 'function') {
 	  this.getter = expOrFn;		//即 vm._watcher.getter = updateComponent
 	}
+	this.value = this.lazy ? undefined : this.get();	//this.get 中会调用 this.getter，所以 new Watcher 就立即调用 updateComponent
 }
 ```
 `watcher`会在组件渲染的过程中把`接触`过的数据属性记录为依赖。之后当依赖的值发生改变，触发依赖的`setter`方法时，会通知`watcher`，从而使它关联的组件(`vm`)重新渲染。
 一旦侦听到数据变化，`Vue`将开启一个队列，并缓冲在同一事件循环中发生的所有数据变更。如果同一个`watcher`被多次触发，只会被推入到队列中一次。
-等当前事件循环结束，下一次事件循环开始，`Vue`会刷新队列并执行已去重的工作。`Vue`会尝试使用`Promise.then`、`MutationObserver`和`setImmediate`发布的微任务来执行异步队列中的`task`。
+等当前事件循环结束，下一次事件循环开始，`Vue`会刷新队列并执行已去重的工作。`Vue`会尝试使用`Promise.then`、`MutationObserver`和`setImmediate`发布的微任务来执行`queue`中的`watcher`。
 ```
 function flushSchedulerQueue () {
+	queue.sort(function (a, b) { return a.id - b.id; });	//queue 是在 Vue 构造函数中的声明的变量
 	...
   for (index = 0; index < queue.length; index++) {
     watcher = queue[index];
@@ -253,9 +255,13 @@ function flushSchedulerQueue () {
 	callUpdatedHooks(queue.slice());		//执行 updated 钩子函数
 }
 ```
+刷新前根据 `id` 对 `queue` 中的 `watcher` 进行排序。这样可以确保：
+1. 组件从父级更新到子级。（因为父母总是在子级之前创建，`id`比较小）；
+2. 在一个组件中，用户声明的`watchers`总是在`render watcher`之前执行，因为`user watchers`更先创建；
+3. 如果在父组件的`watcher`运行期间，销毁了某个子组件，可以跳过该子组件的`watcher`。
 在执行`watcher.run`方法之前，会执行`watcher.before`方法，从而执行`beforeUpdate`钩子函数。
 #### updated
-在执行`watcher.run`方法时，会调用`watcher.getter`方法，而其中某个`watcher`(`vm._watcher`)的`getter`就是`updateComponent`方法：
+在执行`watcher.run`方法时，会调用`watcher.getter`方法，而其中某个`watcher`(`vm._watcher`)关联的就是我们的`vm`，它的`getter`是可以更新`vm`的`updateComponent`方法：
 ```
 Watcher.prototype.run = function run () {
     if (this.active) {
@@ -293,23 +299,37 @@ function callUpdatedHooks (queue) {
 }
 ```
 等以上操作全部完成，就会执行`updated`钩子函数，此时在函数中通过`this.$el`访问到`vm.$el`属性的值为更新后的真实`Dom`。
+`beforeUpdate`和`updated`钩子函数的执行顺序真好相反，因为在`flushSchedulerQueue`函数中是索引递增处理`queue`中的`watcher`的，
+所以执行`beforeUpdate`钩子函数的顺序和`queue`中`watcher`的顺序相同；
+而在`callUpdatedHooks`函数中是按索引递减的顺序执行`queue`中`_watcher`的关联实例的`updated`钩子的。
+再加上父`watcher`排在子`watcher`前，所以如果父、子组件在同一个事件循环中更新，那么生命周期钩子的执行顺序为：
+父`beforeUpdate` => 子`beforeUpdate` => 子`updated` => 父`updated`
+
 #### beforeDestroy
 #### destroyed
 
 #### activated
 如果我们研究的实例`vm`是一个组件实例，而且它被`<keep-alive>`包裹，那么它将额外具有两个钩子函数`activated`和`deactivated`。
-假如`vm`是`根 Vue 实例`的一个子组件，在`根 Vue 实例`挂载时，会在它的`patch`方法中生成真实`Dom`，遇到子节点会调用`createChildren`
+假如`vm`是根 Vue 实例`root`的一个子组件，在`root`挂载时，会在它的`patch`方法中生成真实`Dom`，遇到子节点会调用`createChildren`
 方法先生成子节点的真实`Dom`，再将子`Dom`元素插入根`Dom`元素中。如果子节点为组件，会先调用`createComponent`初始化子组件，
 然后子组件调用`$mount`开始挂载，生成子组件`vnode`，再转化子组件`vnode`为真实`Dom`，如果还存在孙子组件，则递归初始化组件...
-在根 Vue 实例的`patch`方法中的`insertedVnodeQueue`存储了这些被插入的子、孙子组件的`vnode`：
+所以，父子节点的创建、挂载钩子执行顺序为：
+父`beforeCreate` =>  父`created` =>  父`beforeMount` => 子`beforeCreate` => 子`created` => 子`beforeMount`
+
+在`patch`方法中，私有变量`insertedVnodeQueue`用于存储这些被插入的子、孙子组件的`vnode`：
 ```
 function patch() {
+	var insertedVnodeQueue = [];
 	...
 	invokeInsertHook(vnode, insertedVnodeQueue, isInitialPatch);	//调用 insert 钩子
 	return vnode.elm	//真实 Dom 元素
 }
-
-root.$el = vm.__patch__(...)	//`patch`方法返回真实 Dom 元素给根 Vue 实例的 $el，之后会调用根 Vue 实例的 mounted 钩子
+...
+//`patch`方法就是 _update 中的 __patch__ 方法，
+//它返回真实 Dom 元素给根 Vue 实例的 $el，之后会在 mountComponent 中调用根 Vue 实例的 mounted 钩子(具体看前面 mountComponent 和 _update 方法)
+root.$el = root.__patch__(...)	// _update 中
+...
+callHook(root, 'mounted');			// mountComponent 中
 ```
 `vm.$vnode`也在`insertedVnodeQueue`中，在`invokeInsertHook`函数中，会调用这些`vnode`的`insert`钩子:
 ```
@@ -317,19 +337,19 @@ function invokeInsertHook(vnode, queue, initial) {
 	// delay insert hooks for component root nodes, invoke them after the
 	// element is really inserted
 	if (isTrue(initial) && isDef(vnode.parent)) {	
-		vnode.parent.data.pendingInsert = queue;
+		vnode.parent.data.pendingInsert = queue;	//缓存 insertedVnode
 	} else {
-		//只有根 Vue 实例的 initial 为 false，所以会延迟到根 Vue 实例 patch 方法的末尾调用这些 insert 钩子
+		//只有根 Vue 实例的 initial 为 false，所以会延迟到根 Vue 实例 patch 方法的末尾调用所有后代组件的 insert 钩子
 		for (var i = 0; i < queue.length; ++i) {
-			queue[i].data.hook.insert(queue[i]);
+			queue[i].data.hook.insert(queue[i]);	//调用缓存的 insertedVnode 的 insert 钩子
 		}
 	}
 }
 ```
-`vm.$vnode.data.hook.insert`方法：
+假如当前调用的是`vm.$vnode.data.hook.insert`方法：
 ```
 insert: function insert(vnode) {	//传入 vm.$vnode
-	var context = vnode.context;	//父组件实例
+	var context = vnode.context;		//父组件实例
 	var componentInstance = vnode.componentInstance;	//vnode 对应的组件实例 vm
 	if (!componentInstance._isMounted) {
 		componentInstance._isMounted = true;
@@ -346,7 +366,12 @@ insert: function insert(vnode) {	//传入 vm.$vnode
 	}
 }
 ```
-`activateChildComponent`函数会调用`vm`及其子组件的`activated`钩子函数：
+由此可知，`Vue`会按照根 Vue 实例的`patch`方法中`insertedVnodeQueue`中`vnode`的顺序执行`mounted`钩子，而在节点树中越底端的
+组件最先创建好完好的真实`Dom`节点并插入父`Dom`节点中，所以先被`push`到`insertedVnodeQueue`中，所以先执行它的`mounted`钩子。
+所以，完整的父子节点的创建、挂载钩子执行顺序为：
+父`beforeCreate` =>  父`created` =>  父`beforeMount` => 子`beforeCreate` => 子`created` => 子`beforeMount` => 子`mounted` => 父`mounted`
+
+在`insert`钩子中调用的`activateChildComponent`函数会调用`vm`及其后代组件的`activated`钩子函数：
 ```
 function activateChildComponent(vm, direct) {
 	...
@@ -359,6 +384,7 @@ function activateChildComponent(vm, direct) {
 	}
 }
 ```
-在组件实例`vm`首次挂载，调用`mounted`钩子函数后，马上会调用`activated`钩子函数。
-之后组件实例`vm`的`activated`钩子函数会在组件被激活时被调用。
+在`vm`首次挂载，调用`mounted`钩子函数后，会马上调用`activated`钩子函数。
+之后`vm`的`activated`钩子函数会在组件被激活时被调用，具体调用时机是在`flushSchedulerQueue`函数执行完`queue`中所有的`watchers`后。
+
 ### Vue 生命周期流程图
