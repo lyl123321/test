@@ -2,7 +2,7 @@
   <div id="app">
     <img alt="Vue logo" src="./assets/logo.png">
 		<p>{{message}}</p>
-		<keep-alive>
+		<keep-alive include="HelloWorld">
 			<HelloWorld :msg="message" v-if="show"/>
 		</keep-alive>
   </div>

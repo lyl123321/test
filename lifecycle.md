@@ -203,7 +203,10 @@ export function mountComponent(vm, el) {
   ...
   callHook(vm, 'beforeMount')
   ...
-  new Watcher(vm, updateComponent, noop, {
+	const updateComponent = function () {
+	  vm._update(vm._render(), hydrating);
+	};
+  new Watcher(vm, updateComponent, noop, {	//在 Watcher 构造函数中绑定 updateComponent 后会立即调用，开始更新组件
     before: function before () {
      if (vm._isMounted && !vm._isDestroyed) {
         callHook(vm, 'beforeUpdate');
@@ -241,11 +244,13 @@ function flushSchedulerQueue () {
     if (watcher.before) {
       watcher.before();		//执行 beforeUpdate 钩子函数
     }
-		watcher.run();
+		watcher.run();	//
 		...
 	}
 	...
-	callUpdatedHooks(queue.slice());	//执行 updated 钩子函数
+	// call component updated and activated hooks
+	callActivatedHooks(activatedChildren.slice());	//执行 activated 钩子函数
+	callUpdatedHooks(queue.slice());		//执行 updated 钩子函数
 }
 ```
 在执行`watcher.run`方法之前，会执行`watcher.before`方法，从而执行`beforeUpdate`钩子函数。
@@ -290,3 +295,70 @@ function callUpdatedHooks (queue) {
 等以上操作全部完成，就会执行`updated`钩子函数，此时在函数中通过`this.$el`访问到`vm.$el`属性的值为更新后的真实`Dom`。
 #### beforeDestroy
 #### destroyed
+
+#### activated
+如果我们研究的实例`vm`是一个组件实例，而且它被`<keep-alive>`包裹，那么它将额外具有两个钩子函数`activated`和`deactivated`。
+假如`vm`是`根 Vue 实例`的一个子组件，在`根 Vue 实例`挂载时，会在它的`patch`方法中生成真实`Dom`，遇到子节点会调用`createChildren`
+方法先生成子节点的真实`Dom`，再将子`Dom`元素插入根`Dom`元素中。如果子节点为组件，会先调用`createComponent`初始化子组件，
+然后子组件调用`$mount`开始挂载，生成子组件`vnode`，再转化子组件`vnode`为真实`Dom`，如果还存在孙子组件，则递归初始化组件...
+在根 Vue 实例的`patch`方法中的`insertedVnodeQueue`存储了这些被插入的子、孙子组件的`vnode`：
+```
+function patch() {
+	...
+	invokeInsertHook(vnode, insertedVnodeQueue, isInitialPatch);	//调用 insert 钩子
+	return vnode.elm	//真实 Dom 元素
+}
+
+root.$el = vm.__patch__(...)	//`patch`方法返回真实 Dom 元素给根 Vue 实例的 $el，之后会调用根 Vue 实例的 mounted 钩子
+```
+`vm.$vnode`也在`insertedVnodeQueue`中，在`invokeInsertHook`函数中，会调用这些`vnode`的`insert`钩子:
+```
+function invokeInsertHook(vnode, queue, initial) {
+	// delay insert hooks for component root nodes, invoke them after the
+	// element is really inserted
+	if (isTrue(initial) && isDef(vnode.parent)) {	
+		vnode.parent.data.pendingInsert = queue;
+	} else {
+		//只有根 Vue 实例的 initial 为 false，所以会延迟到根 Vue 实例 patch 方法的末尾调用这些 insert 钩子
+		for (var i = 0; i < queue.length; ++i) {
+			queue[i].data.hook.insert(queue[i]);
+		}
+	}
+}
+```
+`vm.$vnode.data.hook.insert`方法：
+```
+insert: function insert(vnode) {	//传入 vm.$vnode
+	var context = vnode.context;	//父组件实例
+	var componentInstance = vnode.componentInstance;	//vnode 对应的组件实例 vm
+	if (!componentInstance._isMounted) {
+		componentInstance._isMounted = true;
+		callHook(componentInstance, 'mounted');	//调用 vm 的 mounted 钩子函数（所以子组件的 mounted 钩子先于父组件被调用）
+	}
+	if (vnode.data.keepAlive) {		//true
+		if (context._isMounted) {
+			// 在父组件更新时
+			queueActivatedComponent(componentInstance);
+		} else {
+			// 在父组件挂载时
+			activateChildComponent(componentInstance, true /* direct */ );
+		}
+	}
+}
+```
+`activateChildComponent`函数会调用`vm`及其子组件的`activated`钩子函数：
+```
+function activateChildComponent(vm, direct) {
+	...
+	if (vm._inactive || vm._inactive === null) {
+		vm._inactive = false;
+		for (var i = 0; i < vm.$children.length; i++) {
+			activateChildComponent(vm.$children[i]);	//递归调用子组件的 activated 钩子
+		}
+		callHook(vm, 'activated');		//调用 vm 的 activated 钩子
+	}
+}
+```
+在组件实例`vm`首次挂载，调用`mounted`钩子函数后，马上会调用`activated`钩子函数。
+之后组件实例`vm`的`activated`钩子函数会在组件被激活时被调用。
+### Vue 生命周期流程图
