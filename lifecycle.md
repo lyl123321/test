@@ -23,11 +23,11 @@ Vue.prototype._init = function(options) {
   initLifecycle(vm) // 开始一系列的初始化
   initEvents(vm)
   initRender(vm)
-  callHook(vm, 'beforeCreate')		//执行 beforeCreate 钩子
+  callHook(vm, 'beforeCreate')	//执行 beforeCreate 钩子
   initInjections(vm)
   initState(vm)
   initProvide(vm)
-  callHook(vm, 'created')					//执行 created 钩子
+  callHook(vm, 'created')	//执行 created 钩子
   ...
   if (vm.$options.el) {
     vm.$mount(vm.$options.el)
@@ -67,13 +67,13 @@ Vue.prototype.$mount = function(el) {  // 拓展编译后的
 	var options = this.$options;
   if(!options.render) {
     if(options.template) {
-      ...							//一些判断
+      ...			//一些判断
     } else if (el) {	//传入的 el 选项不为空
       options.template = getOuterHTML(el);
     }
 		
 		if (options.template) {
-				options.render = compileToFunctions(template, ...).render	//将 template 编译成 render 函数
+				options.render = compileToFunctions(template, ...).render  //将 template 编译成 render 函数
 		}
   }
   ...
@@ -118,13 +118,13 @@ Vue.prototype._render = function() {
 render(h) {
   return h(
     "div",	//标签名
-    [				//子节点数组
+    [		//子节点数组
       [
         [h("h1", "title h1")],	//子节点也是通过 h 函数生成 vnode 的
         [h('h2', "title h2")]
       ],
       [
-        h(obj, [								//子组件传入 obj 而不是标签名
+        h(obj, [	//子组件传入 obj 而不是标签名
 					h("p", "paragraph")
 				])
       ]
@@ -251,11 +251,12 @@ function createComponent(vnode, insertedVnodeQueue, parentElm, refElm) {
 	if (isDef(i)) {
 		var isReactivated = isDef(vnode.componentInstance) && i.keepAlive;
 		if (isDef(i = i.hook) && isDef(i = i.init)) {
-			i(vnode, false /* hydrating */ );								// 暂停执行 createComponent，开始调用 vnode.data.hook.init 钩子进行初始化
+			i(vnode, false /* hydrating */ );	// 暂停执行 createComponent，开始调用 vnode.data.hook.init 钩子进行初始化
 		}
 		if (isDef(vnode.componentInstance)) {
-			initComponent(vnode, insertedVnodeQueue);			// 等 init 钩子执行完再执行，此时 vm 已执行完 $mount 方法，所以在 initComponent 方法中将 vnode push 到 insertedVnodeQueue 中
-			insert(parentElm, vnode.elm, refElm);					// 将真实元素 vnode.elm 插入父节点中
+			// 等 init 钩子执行完再执行，此时 vm 已执行完 $mount 方法，所以在initComponent 方法中将 vnode push 到 insertedVnodeQueue 中
+			initComponent(vnode, insertedVnodeQueue);
+			insert(parentElm, vnode.elm, refElm);	// 将真实元素 vnode.elm 插入父节点中
 			if (isTrue(isReactivated)) {
 				reactivateComponent(vnode, insertedVnodeQueue, parentElm, refElm);
 			}
@@ -268,8 +269,8 @@ function createComponent(vnode, insertedVnodeQueue, parentElm, refElm) {
 ```
 init: function init(vnode, hydrating) {
 	...
-	var child = vnode.componentInstance = createComponentInstanceForVnode(vnode, activeInstance);		//调用 `Sub`构造函数实例化子组件，执行 `beforeCreate` 和 `created` 钩子
-	child.$mount(hydrating ? vnode.elm : undefined, hydrating);				//调用 vm.$mount，执行 `beforeMount` 钩子，然后执行 updateComponent，重复上面的操作
+	var child = vnode.componentInstance = createComponentInstanceForVnode(vnode, activeInstance);  //调用 `Sub`构造函数实例化子组件，执行 `beforeCreate` 和 `created` 钩子
+	child.$mount(hydrating ? vnode.elm : undefined, hydrating);  //调用 vm.$mount，执行 `beforeMount` 钩子，然后执行 updateComponent，重复上面的操作
 },
 ```
 初始化完成后，会调用子组件实例`vm`的`$mount`方法进行挂载，执行`patch`方法，在`vm`的`patch`方法中又会调用`createElm`方法生成真实`Dom`，这时子组件实例会难以避免地再次执行`createComponent`方法：
@@ -277,11 +278,11 @@ init: function init(vnode, hydrating) {
 function createElm(vnode, insertedVnodeQueue, parentElm, refElm) { 
   ...
   if (createComponent(vnode, insertedVnodeQueue, parentElm, refElm)) {	// 如果子节点为组件，调用 createComponent 方法对子组件进行初始化；之后在子组件的 `patch` 方法中又会调用 `createElm` 方法
-    return  																																									//    /|\
-  }																																														//     |
-	//继续创建真实节点																																									 |
-	...																																													//     |
-	vnode.elm = nodeOps.createElement(tag)																											//     |
+    return  							//    /|\
+  }						 		//     |
+	//继续创建真实节点				                |
+	...							//     |
+	vnode.elm = nodeOps.createElement(tag)			//     |
 	createChildren(vnode, children, insertedVnodeQueue);	//从这里开始暂停，在 createChildren 中 createElm 子节点
 	insert(parentElm, vnode.elm, refElm);  			//将真实元素 vnode.elm 插入父节点中
 	...
@@ -304,7 +305,7 @@ function patch() {
 //它返回真实 Dom 元素给根 Vue 实例的 $el，之后会在 mountComponent 中调用根 Vue 实例的 mounted 钩子(具体看前面 mountComponent 和 _update 方法)
 root.$el = root.__patch__(...)	// _update 中
 ...
-callHook(root, 'mounted');			// mountComponent 中
+callHook(root, 'mounted');	// mountComponent 中
 ```
 `vm`是`root`的后代，`vm.$vnode`也在`root`实例的`patch`方法的`insertedVnodeQueue`中。在`invokeInsertHook`函数中，会调用这些`vnode`的`insert`钩子:
 ```
@@ -333,10 +334,10 @@ insert: function insert(vnode) {	//传入 vm.$vnode
 	if (vnode.data.keepAlive) {		//true
 		if (context._isMounted) {
 			// 父组件更新中
-			queueActivatedComponent(componentInstance);								// 父组件更新时，将 `vm` push 到 Vue 全局变量 activatedChildren 中，等待执行 `activated` 钩子函数
+			queueActivatedComponent(componentInstance);  // 父组件更新时，将 `vm` push 到 Vue 全局变量 activatedChildren 中，等待执行 `activated` 钩子函数
 		} else {
 			// 父组件挂载中
-			activateChildComponent(componentInstance, true /* direct */ );		//调用 `vm` 的 `activated` 钩子函数
+			activateChildComponent(componentInstance, true /* direct */ );	//调用 `vm` 的 `activated` 钩子函数
 		}
 	}
 }
@@ -366,7 +367,7 @@ function activateChildComponent(vm, direct) {
 ```
 function patch() {
 	...
-	removeVnodes(parentElm, [oldVnode], 0, 0);		// 在 removeVnodes 中调用 invokeDestroyHook(oldVnode) 删除旧节点
+	removeVnodes(parentElm, [oldVnode], 0, 0);	// 在 removeVnodes 中调用 invokeDestroyHook(oldVnode) 删除旧节点
 	invokeInsertHook(vnode, insertedVnodeQueue, isInitialPatch);
 	return vnode.elm
 }
@@ -378,7 +379,7 @@ function invokeDestroyHook(vnode) {
 	var data = vnode.data;
 	if (isDef(data)) {
 		if (isDef(i = data.hook) && isDef(i = i.destroy)) {
-			i(vnode);											//调用 vnode.data.hook.destroy 钩子
+			i(vnode);	//调用 vnode.data.hook.destroy 钩子
 		}
 		...
 	}
@@ -389,7 +390,7 @@ destroy: function destroy(vnode) {
 	var componentInstance = vnode.componentInstance;
 	if (!componentInstance._isDestroyed) {
 		if (!vnode.data.keepAlive) {								
-			componentInstance.$destroy();								//	调用 vm.$destroy()
+			componentInstance.$destroy();		//调用 vm.$destroy()
 		} else {
 			deactivateChildComponent(componentInstance, true /* direct */ );	//调用子组件的 'deactivated' 钩子
 		}
@@ -416,9 +417,9 @@ export function mountComponent(vm, el) {
 	  vm._update(vm._render(), hydrating);
 	};
   new Watcher(vm, updateComponent, noop, {
-    before: function before () {									//在 run 之前执行
+    before: function before () {		//在 run 之前执行
      if (vm._isMounted && !vm._isDestroyed) {
-        callHook(vm, 'beforeUpdate');						// beforeUpdate 钩子等待执行
+        callHook(vm, 'beforeUpdate');		// beforeUpdate 钩子等待执行
       }
     }
   }, true /* isRenderWatcher */);
@@ -429,7 +430,7 @@ export function mountComponent(vm, el) {
 如果是`RenderWatcher`，`vm._watcher`会用它赋值：
 ```
 var Watcher = function Watcher (vm, expOrFn, cb, options, isRenderWatcher) {
-  this.vm = vm;					//关联组件
+  this.vm = vm;				//关联组件
   if (isRenderWatcher) {
     vm._watcher = this;
   }
@@ -438,9 +439,9 @@ var Watcher = function Watcher (vm, expOrFn, cb, options, isRenderWatcher) {
 	this.before = options.before;
 	...
 	if (typeof expOrFn === 'function') {
-	  this.getter = expOrFn;		//即 vm._watcher.getter = updateComponent
+	  this.getter = expOrFn;	//即 vm._watcher.getter = updateComponent
 	}
-	this.value = this.lazy ? undefined : this.get();	//this.get 中会调用 this.getter，所以 new Watcher 就立即调用 updateComponent
+	this.value = this.lazy ? undefined : this.get();//this.get 中会调用 this.getter，所以 new Watcher 就立即调用 updateComponent
 }
 ```
 `watcher`会在组件渲染的过程中把`接触`过的数据属性记录为依赖。之后当依赖的值发生改变，触发依赖的`setter`方法时，会通知`watcher`，从而使它关联的组件(`vm`)重新渲染。
@@ -474,7 +475,7 @@ function flushSchedulerQueue () {
 ```
 Watcher.prototype.run = function run () {
     if (this.active) {
-      var value = this.get();				//调用 watcher.get 方法
+      var value = this.get();		//调用 watcher.get 方法
 			...
 		}
 		...
